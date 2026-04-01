@@ -5,7 +5,7 @@ An interactive Theory of Computation suite that visualizes emergent complexity t
 Built entirely in vanilla web technologies (HTML5 Canvas, CSS3, JavaScript) as a submission for the Theory of Computation course competition.
 
 ## 🚀 Live Demo
-*https://faham-from-nowhere.github.io/Turing-X-Halting/*
+*(https://faham-from-nowhere.github.io/Turing-X-Halting/)*
 **[Play the Simulation Here](#)**
 
 ## 🧠 Core Modules
