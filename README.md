@@ -41,4 +41,4 @@ Because this project relies entirely on client-side execution, no build tools, s
 3. The simulation is fully offline-capable.
 
 ## 📜 Academic Integrity Statement
-This application was developed specifically for the Theory of Computation course fest. The state machine logic, toroidal grid physics, UI architecture, and concurrent agent systems were uniquely engineered for this submission. The Busy Beaver transition tables reflect standard, publicly verified mathematical proofs.
+This application was developed specifically for the Theory of Computation Internals. The state machine logic, toroidal grid physics, UI architecture, and concurrent agent systems were uniquely engineered for this submission. The Busy Beaver transition tables reflect standard, publicly verified mathematical proofs.
