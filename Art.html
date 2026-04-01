@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Theory of Computation: Interactive Explorations</title>
+    <style>
+        :root { --bg: #1a1a1a; --surface: #2a2a2a; --primary: #33CCFF; --text: #ffffff; }
+        body {
+            background-color: var(--bg); color: var(--text); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden;
+        }
+        
+        /* Tab Navigation */
+        .tab-nav {
+            display: flex; width: 100%; background-color: #111; padding: 0 20px; box-sizing: border-box;
+            border-bottom: 2px solid #333; flex-shrink: 0;
+        }
+        .tab-btn {
+            background: none; border: none; color: #888; padding: 15px 30px; font-size: 1.1em;
+            cursor: pointer; font-weight: bold; transition: 0.3s;
+        }
+        .tab-btn:hover { color: var(--text); background-color: #222; }
+        .tab-btn.active { color: var(--primary); border-bottom: 3px solid var(--primary); background-color: var(--surface); }
+
+        /* Tab Content Containers */
+        .tab-content { display: none; flex-direction: column; align-items: center; padding: 20px; width: 100%; height: 100%; overflow-y: auto; box-sizing: border-box; }
+        .tab-content.active { display: flex; }
+
+        /* Documentation Panels */
+        .doc-panel {
+            background: #222; border-left: 4px solid var(--primary); padding: 10px 20px; 
+            margin-bottom: 20px; width: 800px; box-sizing: border-box; border-radius: 0 4px 4px 0;
+            line-height: 1.6; color: #ddd; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        .doc-panel summary { font-size: 1.1em; font-weight: bold; color: var(--primary); cursor: pointer; outline: none; margin: 5px 0;}
+        .doc-panel summary:hover { color: #fff; }
+        .doc-panel h3 { margin-top: 15px; margin-bottom: 5px; color: #fff; font-size: 1.05em; }
+        .doc-panel p { margin-top: 5px; font-size: 0.95em; }
+
+        /* Shared UI Elements */
+        .control-panel {
+            margin-top: 15px; display: flex; flex-direction: column; gap: 15px; background: var(--surface);
+            padding: 15px; border-radius: 8px; width: 800px; box-sizing: border-box; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+        .sliders { display: flex; gap: 20px; flex-grow: 1; justify-content: space-around; }
+        .slider-group { display: flex; flex-direction: column; font-size: 0.9em; color: #aaa; }
+        button {
+            padding: 8px 16px; cursor: pointer; background-color: #4CAF50; color: white;
+            border: none; border-radius: 4px; font-weight: bold; transition: background 0.2s;
+        }
+        button:hover { background-color: #45a049; }
+        button:disabled { background-color: #555; cursor: not-allowed; color: #888; }
+        select, input[type="range"] { margin-top: 5px; cursor: pointer; background: #444; color: white; border: 1px solid #555; padding: 4px; }
+        
+        /* Specifics */
+        canvas { background-color: #000; border: 2px solid #444; box-shadow: 0 0 20px rgba(0,0,0,0.5); image-rendering: pixelated; flex-shrink: 0;}
+        #status { font-size: 1.2em; font-weight: bold; color: var(--primary); margin-bottom: 10px; text-align: center; height: 24px;}
+        
+        /* Busy Beaver Tape CSS */
+        #bb-tape-container {
+            display: flex; justify-content: center; align-items: center; width: 800px; height: 80px;
+            background: #000; border: 2px solid #555; overflow: hidden; position: relative;
+            margin-top: 10px; flex-shrink: 0;
+        }
+        .tape-cell {
+            width: 40px; height: 40px; border: 1px solid #333; display: flex; justify-content: center; align-items: center;
+            font-size: 1.5em; font-weight: bold; color: #555; background: #111;
+        }
+        .tape-cell.filled { color: var(--primary); background: #1a3340; border-color: var(--primary); }
+        .tape-cell.head { border: 3px solid #FF3366; background: #331a20; z-index: 10; transform: scale(1.1); box-shadow: 0 0 10px #FF3366;}
+        #bb-stats { font-size: 1.2em; display: flex; gap: 30px; margin: 15px 0; color: #ccc;}
+        .stat-highlight { color: #FFF; font-weight: bold; font-size: 1.4em; }
+        #bb-rules-display {
+            background: #111; border: 1px solid #333; padding: 10px; border-radius: 4px; font-family: monospace;
+            color: #aaa; width: 100%; box-sizing: border-box; min-height: 100px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="tab-nav">
+        <button class="tab-btn active" onclick="switchTab('turmiteTab', this)">1. Algorithmic Art (Multi-Head)</button>
+        <button class="tab-btn" onclick="switchTab('bbTab', this)">2. Educational: Busy Beaver Limit</button>
+    </div>
+
+    <div id="turmiteTab" class="tab-content active">
+        
+        <details class="doc-panel" open>
+            <summary>Documentation: Multi-Head Turmites</summary>
+            <h3>Concept: 2D Turing Machines</h3>
+            <p>A standard Turing Machine operates on a 1D tape. A "Turmite" extends this into a 2D grid. The read/write head has an orientation (Up, Down, Left, Right) and its transition rules dictate not only the state and character to write, but also the relative turn direction based on the current cell's color.</p>
+            <h3>Concept: Multi-Head Architecture & Nondeterminism</h3>
+            <p>This simulation deploys multiple independent read/write heads simultaneously onto a shared memory grid. By allowing you to "Mutate Subsets," the simulation models heterogeneous agents executing divergent rule sets, visually demonstrating emergent complexity and concurrent memory access conflicts.</p>
+            <h3>Concept: Toroidal Space</h3>
+            <p>To simulate an infinite tape on a finite screen, the grid utilizes toroidal wrapping. Heads moving off the right edge reappear on the left, ensuring continuous computation without boundary halting states.</p>
+        </details>
+
+        <div id="status">Phase 1: Coordinated Initialization...</div>
+        <canvas id="gridCanvas" width="800" height="500"></canvas>
+        
+        <div class="control-panel">
+            <div class="row">
+                <div class="sliders">
+                    <div class="slider-group">
+                        <label>Speed: <span id="speedVal">40</span>x</label>
+                        <input type="range" id="speedSlider" min="1" max="200" value="40" oninput="updateSpeed()">
+                    </div>
+                    <div class="slider-group">
+                        <label>Active Heads: <span id="headVal">5</span></label>
+                        <input type="range" id="headSlider" min="1" max="50" value="5" oninput="updateHeads()" disabled>
+                    </div>
+                    <div class="slider-group">
+                        <label>Grid Density:</label>
+                        <select id="densitySelect" onchange="changeDensity()" disabled>
+                            <option value="10">Low (10px)</option>
+                            <option value="5" selected>Medium (5px)</option>
+                            <option value="2">High (2px)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="row" style="justify-content: center;">
+                <button id="btnStart" onclick="togglePause()" disabled>Pause</button>
+                <button id="btnMutate" onclick="mutateSubset()" disabled>Mutate Subset</button>
+                <button onclick="resetSimulation()">Full Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="bbTab" class="tab-content">
+        
+        <details class="doc-panel" open>
+            <summary>Documentation: The Busy Beaver Problem</summary>
+            <h3>Context: The Halting Problem</h3>
+            <p>Alan Turing proved that no algorithm can determine if every possible program will eventually halt or run forever. The Busy Beaver game plays off this undecidability by asking a specific, finite question that becomes incredibly difficult to answer as states increase.</p>
+            <h3>The Game Rules</h3>
+            <p>An N-state Busy Beaver is a Turing Machine that starts on a completely blank tape (all 0s). The goal is to design a state transition table that prints the maximum possible number of 1s <strong>before strictly halting</strong>. If the machine enters an infinite loop, it is disqualified.</p>
+            <h3>Computational Explosion</h3>
+            <p>Notice the explosion in complexity. A 2-state machine halts after 6 steps. A 3-state machine halts after 21 steps. A 4-state machine takes 107 steps. The champion for a 5-state machine takes <strong>47,176,870 steps</strong> to halt. The value for 6 states is currently unknown, proving how quickly simple finite state machines generate staggering mathematical complexity.</p>
+        </details>
+
+        <div id="bb-tape-container">
+            </div>
+
+        <div id="bb-stats">
+            <div>Steps Executed: <span class="stat-highlight" id="bb-step-count">0</span></div>
+            <div>Ones Printed: <span class="stat-highlight" id="bb-one-count">0</span></div>
+            <div>Current State: <span class="stat-highlight" id="bb-state-display" style="color:#FF3366">A</span></div>
+        </div>
+
+        <div class="control-panel">
+            <div class="row">
+                <div class="slider-group" style="width: 40%;">
+                    <label>Select Champion Machine:</label>
+                    <select id="bb-selector" onchange="loadBB()">
+                        <option value="2">2-State Champion (Max Steps: 6)</option>
+                        <option value="3">3-State Champion (Max Steps: 21)</option>
+                        <option value="4">4-State Champion (Max Steps: 107)</option>
+                    </select>
+                </div>
+                <div class="slider-group" style="width: 40%;">
+                    <label>Play Speed (ms per step): <span id="bb-speed-val">100</span>ms</label>
+                    <input type="range" id="bb-speed" min="10" max="1000" value="100" oninput="updateBBSpeed()">
+                </div>
+            </div>
+            <div class="row" style="justify-content: center;">
+                <button id="bb-btn-play" onclick="toggleBBPlay()">Auto-Play</button>
+                <button id="bb-btn-step" onclick="stepBB()">Step Forward</button>
+                <button onclick="loadBB()">Reset Tape</button>
+            </div>
+            <div id="bb-rules-display"></div>
+        </div>
+    </div>
+
+<script>
+    // --- TAB LOGIC ---
+    function switchTab(tabId, btn) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        btn.classList.add('active');
+    }
+
+    // ==========================================
+    // MODULE 1: TURMITE ART ENGINE
+    // ==========================================
+    const canvas = document.getElementById('gridCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    let CELL_SIZE = 5; let COLS, ROWS;
+    const NUM_COLORS = 8; const NUM_STATES = 5;
+    const COLORS = ['#000000', '#FF3366', '#33CCFF', '#FFFF66', '#CC33FF', '#33FF99', '#FF9933', '#FFFFFF'];
+
+    let grid = []; let heads = []; let sharedRules = {};
+    let animationId; let isPaused = false; let currentPhase = 1; let simSpeed = 40;
+    let phase1Queue = [];
+
+    const BITMAP_FONT = {
+        'F': [[1,1,1,1],[1,0,0,0],[1,1,1,0],[1,0,0,0],[1,0,0,0]],
+        'A': [[0,1,1,0],[1,0,0,1],[1,1,1,1],[1,0,0,1],[1,0,0,1]],
+        'H': [[1,0,0,1],[1,0,0,1],[1,1,1,1],[1,0,0,1],[1,0,0,1]],
+        'M': [[1,0,0,0,1],[1,1,0,1,1],[1,0,1,0,1],[1,0,0,0,1],[1,0,0,0,1]]
+    };
+
+    function initTurmiteGrid() {
+        COLS = Math.floor(canvas.width / CELL_SIZE);
+        ROWS = Math.floor(canvas.height / CELL_SIZE);
+        grid = new Array(COLS).fill(0).map(() => new Array(ROWS).fill(0));
+    }
+
+    function buildInitQueue() {
+        const text = "FAHAM";
+        let startX = Math.floor(COLS / 2) - Math.floor(text.length * 3); 
+        let startY = Math.floor(ROWS / 2) - 3;
+        let cIdx = 1;
+
+        for (let i=0; i<text.length; i++) {
+            let charMap = BITMAP_FONT[text[i]];
+            for (let r=0; r<charMap.length; r++) {
+                for (let c=0; c<charMap[r].length; c++) {
+                    if (charMap[r][c] === 1) phase1Queue.push({x: startX + c, y: startY + r, color: cIdx});
+                }
+            }
+            startX += charMap[0].length + 2;
+            cIdx = (cIdx % (NUM_COLORS - 1)) + 1;
+        }
+    }
+
+    class Turmite {
+        constructor(x, y, rules) {
+            this.x = x % COLS; this.y = y % ROWS;
+            this.dir = Math.floor(Math.random() * 4);
+            this.state = 0; this.rules = rules;
+        }
+        step() {
+            let color = grid[this.x][this.y];
+            let rule = this.rules[`${this.state}_${color}`];
+            if (!rule) return;
+
+            grid[this.x][this.y] = rule.w;
+            this.state = rule.s;
+            this.dir = (this.dir + rule.t) % 4;
+
+            if (this.dir === 0) this.y--; else if (this.dir === 1) this.x++;
+            else if (this.dir === 2) this.y++; else if (this.dir === 3) this.x--;
+            this.x = (this.x + COLS) % COLS; this.y = (this.y + ROWS) % ROWS;
+        }
+    }
+
+    function genRules() {
+        let rules = {};
+        for (let s=0; s<NUM_STATES; s++) {
+            for (let c=0; c<NUM_COLORS; c++) rules[`${s}_${c}`] = { w: Math.floor(Math.random()*NUM_COLORS), s: Math.floor(Math.random()*NUM_STATES), t: Math.floor(Math.random()*4) };
+        }
+        return rules;
+    }
+
+    function updateSpeed() { simSpeed = document.getElementById('speedSlider').value; document.getElementById('speedVal').innerText = simSpeed; }
+    function updateHeads() {
+        if (currentPhase !== 2) return;
+        let target = parseInt(document.getElementById('headSlider').value);
+        document.getElementById('headVal').innerText = target;
+        while (heads.length < target) heads.push(new Turmite(Math.floor(Math.random() * COLS), Math.floor(Math.random() * ROWS), sharedRules));
+        while (heads.length > target) heads.pop();
+    }
+    function changeDensity() {
+        CELL_SIZE = parseInt(document.getElementById('densitySelect').value);
+        initTurmiteGrid(); ctx.fillStyle = COLORS[0]; ctx.fillRect(0,0,canvas.width,canvas.height);
+        sharedRules = genRules(); heads = []; updateHeads();
+    }
+    function togglePause() { isPaused = !isPaused; document.getElementById('btnStart').innerText = isPaused ? "Resume" : "Pause"; }
+
+    function resetSimulation() {
+        cancelAnimationFrame(animationId);
+        CELL_SIZE = 5; document.getElementById('densitySelect').value = "5";
+        document.getElementById('headSlider').value = "5"; document.getElementById('headVal').innerText = "5";
+        initTurmiteGrid(); ctx.fillStyle = COLORS[0]; ctx.fillRect(0,0,canvas.width,canvas.height);
+        currentPhase = 1; phase1Queue = []; heads = []; isPaused = false;
+        
+        document.getElementById('status').innerText = "Phase 1: Coordinated Initialization..."; document.getElementById('status').style.color = "#33CCFF";
+        document.getElementById('btnStart').disabled = true; document.getElementById('btnMutate').disabled = true;
+        document.getElementById('headSlider').disabled = true; document.getElementById('densitySelect').disabled = true;
+        buildInitQueue(); loopTurmite();
+    }
+
+    function startPhase2() {
+        currentPhase = 2;
+        document.getElementById('status').innerText = "Phase 2: Concurrent Randomized Art"; document.getElementById('status').style.color = "#FF3366";
+        document.getElementById('btnStart').disabled = false; document.getElementById('btnMutate').disabled = false;
+        document.getElementById('headSlider').disabled = false; document.getElementById('densitySelect').disabled = false;
+
+        sharedRules = genRules();
+        let target = parseInt(document.getElementById('headSlider').value);
+        let lastPos = phase1Queue.length > 0 ? phase1Queue[phase1Queue.length-1] : {x: COLS/2, y: ROWS/2};
+        for(let i=0; i<target; i++) heads.push(new Turmite(lastPos.x, lastPos.y, sharedRules));
+    }
+
+    function mutateSubset() {
+        let newR = genRules(); let count = 0;
+        heads.forEach(h => { if (Math.random() > 0.5) { h.rules = newR; count++; } });
+        document.getElementById('status').innerText = `Rules Mutated for ${count} Heads!`;
+        setTimeout(() => document.getElementById('status').innerText = "Phase 2: Concurrent Randomized Art", 2000);
+    }
+
+    function loopTurmite() {
+        if (!isPaused) {
+            if (currentPhase === 1) {
+                for(let i=0; i<3; i++) {
+                    if (phase1Queue.length > 0) { let p = phase1Queue.shift(); grid[p.x][p.y] = p.color; } 
+                    else { startPhase2(); break; }
+                }
+            } else if (currentPhase === 2) {
+                for (let s=0; s<simSpeed; s++) heads.forEach(h => h.step());
+            }
+        }
+        ctx.fillStyle = COLORS[0]; ctx.fillRect(0,0,canvas.width,canvas.height); 
+        for (let x=0; x<COLS; x++) {
+            for (let y=0; y<ROWS; y++) {
+                if (grid[x][y] !== 0) { ctx.fillStyle = COLORS[grid[x][y]]; ctx.fillRect(x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE); }
+            }
+        }
+        animationId = requestAnimationFrame(loopTurmite);
+    }
+
+    // ==========================================
+    // MODULE 2: BUSY BEAVER ENGINE
+    // ==========================================
+    
+    const BB_RULES = {
+        '2': [ 
+            [{w:1, m:1, s:1}, {w:1, m:-1, s:1}], 
+            [{w:1, m:-1, s:0}, {w:1, m:1, s:-1}] 
+        ],
+        '3': [ 
+            [{w:1, m:1, s:1}, {w:1, m:1, s:-1}], 
+            [{w:0, m:1, s:2}, {w:1, m:1, s:1}], 
+            [{w:1, m:-1, s:2}, {w:1, m:-1, s:0}]
+        ],
+        '4': [ 
+            [{w:1, m:1, s:1}, {w:1, m:-1, s:1}], 
+            [{w:1, m:-1, s:0}, {w:0, m:-1, s:2}], 
+            [{w:1, m:1, s:-1}, {w:1, m:-1, s:3}],
+            [{w:1, m:1, s:3}, {w:0, m:1, s:0}]
+        ]
+    };
+
+    const STATE_NAMES = ['A', 'B', 'C', 'D', 'HALT'];
+    let bbTape = []; let bbHead = 0; let bbState = 0; let bbSteps = 0;
+    let bbPlayInterval = null; let bbIsPlaying = false; let bbSpeedMs = 100;
+    const VISIBLE_CELLS = 19; 
+
+    function initBBTape() {
+        bbTape = new Array(500).fill(0); 
+        bbHead = 250; 
+        bbState = 0; bbSteps = 0;
+    }
+
+    function renderBBTape() {
+        const container = document.getElementById('bb-tape-container');
+        container.innerHTML = '';
+        
+        let startIdx = bbHead - Math.floor(VISIBLE_CELLS / 2);
+        
+        for (let i = 0; i < VISIBLE_CELLS; i++) {
+            let tIdx = startIdx + i;
+            let cellVal = (tIdx >= 0 && tIdx < bbTape.length) ? bbTape[tIdx] : 0;
+            
+            let div = document.createElement('div');
+            div.className = 'tape-cell';
+            if (cellVal === 1) div.classList.add('filled');
+            if (tIdx === bbHead) div.classList.add('head');
+            div.innerText = cellVal;
+            container.appendChild(div);
+        }
+
+        document.getElementById('bb-step-count').innerText = bbSteps;
+        document.getElementById('bb-one-count').innerText = bbTape.filter(x => x === 1).length;
+        
+        let stateText = bbState === -1 ? "HALTED" : STATE_NAMES[bbState];
+        let stateEl = document.getElementById('bb-state-display');
+        stateEl.innerText = stateText;
+        stateEl.style.color = bbState === -1 ? "#33FF99" : "#FF3366";
+    }
+
+    function formatRules(machine) {
+        let rules = BB_RULES[machine]; let html = `<strong>Transition Table (${machine}-State):</strong><br>`;
+        for(let i=0; i<rules.length; i++) {
+            html += `State ${STATE_NAMES[i]}: `;
+            html += `If 0 &rarr; Write ${rules[i][0].w}, Move ${rules[i][0].m===1?'R':'L'}, Goto ${STATE_NAMES[rules[i][0].s] === undefined ? 'HALT' : STATE_NAMES[rules[i][0].s]} | `;
+            html += `If 1 &rarr; Write ${rules[i][1].w}, Move ${rules[i][1].m===1?'R':'L'}, Goto ${STATE_NAMES[rules[i][1].s] === undefined ? 'HALT' : STATE_NAMES[rules[i][1].s]}<br>`;
+        }
+        document.getElementById('bb-rules-display').innerHTML = html;
+    }
+
+    function loadBB() {
+        if(bbPlayInterval) clearInterval(bbPlayInterval);
+        bbIsPlaying = false; document.getElementById('bb-btn-play').innerText = "Auto-Play";
+        document.getElementById('bb-btn-play').disabled = false; document.getElementById('bb-btn-step').disabled = false;
+        
+        initBBTape();
+        let m = document.getElementById('bb-selector').value;
+        formatRules(m); renderBBTape();
+    }
+
+    function stepBB() {
+        if (bbState === -1) return; 
+        
+        let m = document.getElementById('bb-selector').value;
+        let readVal = bbTape[bbHead];
+        let rule = BB_RULES[m][bbState][readVal];
+
+        bbTape[bbHead] = rule.w;
+        bbHead += rule.m;
+        bbState = rule.s;
+        bbSteps++;
+
+        renderBBTape();
+
+        if (bbState === -1) { 
+            if(bbPlayInterval) clearInterval(bbPlayInterval);
+            document.getElementById('bb-btn-play').disabled = true; document.getElementById('bb-btn-step').disabled = true;
+            document.getElementById('bb-btn-play').innerText = "Machine Halted";
+        }
+    }
+
+    function toggleBBPlay() {
+        if (bbState === -1) return;
+        bbIsPlaying = !bbIsPlaying;
+        let btn = document.getElementById('bb-btn-play');
+        if (bbIsPlaying) {
+            btn.innerText = "Pause"; btn.style.backgroundColor = "#FF9933";
+            bbPlayInterval = setInterval(stepBB, bbSpeedMs);
+        } else {
+            btn.innerText = "Auto-Play"; btn.style.backgroundColor = "#4CAF50";
+            clearInterval(bbPlayInterval);
+        }
+    }
+
+    function updateBBSpeed() {
+        bbSpeedMs = parseInt(document.getElementById('bb-speed').value);
+        document.getElementById('bb-speed-val').innerText = bbSpeedMs;
+        if (bbIsPlaying) { clearInterval(bbPlayInterval); bbPlayInterval = setInterval(stepBB, bbSpeedMs); }
+    }
+
+    // --- INIT ---
+    resetSimulation(); 
+    loadBB(); 
+
+</script>
+</body>
+</html>
